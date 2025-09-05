@@ -10,7 +10,9 @@ export default async function handler(req, res) {
 
   try {
     const body = (req.body && typeof req.body === 'object') ? req.body : JSON.parse(req.body || '{}');
-    const prompt = body.foodName || '';
+    const prompt = `Provide a JSON object for the food "${body.foodName}" with these keys:
+    "foodName", "summary", "nutritionalData" (including calories, sugar, fat, sodium, protein, fiber, saturatedFat).
+     Respond ONLY with valid JSON.`;
 
     const API_KEY = process.env.GEMINI_API_KEY;
     if (!API_KEY) return res.status(500).json({ error: 'Server misconfigured: missing API key' });
