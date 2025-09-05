@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Hidden Truth: An Interactive Guide to 'Healthy' Foods</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts: Playfair Display for headings, Open Sans for body text -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Dark Ocean (retained) -->
+    <!-- Application Structure Plan: A single-page application with sticky side navigation for a clear, non-linear user flow. This structure allows users to easily jump between key themes of the report: understanding the problem (Introduction, Hidden Culprits), exploring concrete examples (Food Face-Off), seeing context-specific advice (Athlete's Corner), learning practical skills (Label Detective), and now getting AI-powered insights (AI Food Insight). This is more usable than a long scroll, encouraging exploration. The core interaction is the "Food Face-Off," where users select a food category and see a dynamic, side-by-side comparison with an updating bar chart, turning passive reading into active discovery. The initial hero section aims to immediately hook the user with a strong visual and call to action, now with a more sophisticated typography. -->
+    <!-- Visualization & Content Choices: 
+        - Goal: Hook/Inform -> Presentation: Full-height hero section with compelling headline and call-to-action button, now with premium font. Interaction: Smooth scroll on click. Justification: Creates an immediate impact and clear entry point with an elevated aesthetic.
+        - Goal: Inform/Overview -> Presentation: Structured text sections (Introduction, Conclusion) with subtle fade-in animations on scroll, using a readable body font. Interaction: Scroll navigation. Justification: Provides necessary background context in an engaging and refined way.
+        - Goal: Organize/Compare -> Presentation: Interactive cards for "Hidden Culprits" (Sugar, Fat, Sodium) with hover effects and subtle reveal. Interaction: Click to learn more (simulated). Justification: Breaks down complex topics into digestible, visually appealing chunks with enhanced readability.
+        - Goal: Compare/Analyze -> Presentation: "Food Face-Off" with a dropdown selector and dynamically updated bar chart (Chart.js/Canvas), with metric selection. The comparison details are now presented in a more distinct "versus" layout with a vertical divider. Interaction: User selects food and metric, all text and visual data updates. Justification: This new layout makes the direct comparison more visually striking and intuitive, enhancing user engagement and clarity, while maintaining refined text and chart labels.
+        - Goal: Inform/Debunk -> Presentation: Accordion-style list for "Athlete's Corner" myths with improved styling and body font. Interaction: Click to expand/collapse. Justification: Organizes Q&A-style content cleanly and interactively with better legibility.
+        - Goal: Educate/Train -> Presentation: Interactive list for "Label Detective" misleading terms and key checks, with enhanced visual emphasis and refined text. Interaction: Reading, visual scanning. Justification: Provides a hands-on learning experience for a practical skill with a more professional tone.
+        - Goal: AI Insight -> Presentation: Text input and button for user query, loading indicator, and dynamic text output from LLM *plus* a dynamic chart based on AI-generated nutritional data. Interaction: User inputs food name, clicks button, gets AI-generated insight and graph. Justification: Directly addresses user's need for instant nutritional facts and "health halo" checks, now with a powerful visual component, enhancing the app's utility significantly.
+        - Library/Method: Chart.js for all charting, rendered on Canvas, fulfilling the NO SVG/Mermaid requirement. CSS for subtle animations and visual enhancements, now adjusted for new fonts and the comparison layout. Gemini API for LLM structured text generation. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif; /* Body text font */
+            background-color: #1A1A1A; /* Dark background */
+            color: #E0E0E0; /* Light text */
+        }
+        h1, h2, h3, h4 {
+            font-family: 'Playfair Display', serif; /* Heading font */
+        }
+        
+        .nav-link {
+            transition: all 0.3s ease;
+        }
+        .nav-link.active, .nav-link:hover {
+            background-color: #404040; /* Lighter shade of nav bg for hover */
+            color: #87CEEB; /* SkyBlue for active/hover */
+            transform: translateX(5px);
+        }
+        .content-card {
+            background-color: #3A3A3A; /* Darker card background */
+            border: 1px solid #555555; /* Darker border */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.15); /* Darker shadow */
+            transition: all 0.3s ease;
+        }
+        .content-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+            transform: translateY(-2px);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .btn-primary {
+            background-color: #3498DB; /* Deep Sky Blue - remains vibrant */
+            color: #FFFFFF;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        .btn-primary:hover {
+            background-color: #217DBB; /* Darker Deep Sky Blue */
+            transform: translateY(-2px);
+        }
+
+        /* Animations */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .fade-in.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .slide-in-right {
+            opacity: 0;
+            transform: translateX(50px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .slide-in-right.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .hero-background {
+            background: linear-gradient(135deg, #1A2A3A 0%, #2C3E50 100%); /* Dark Blue/Grey gradient */
+            animation: gradient-shift 10s ease infinite alternate;
+        }
+        @keyframes gradient-shift {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+        .hero-title {
+            animation: pulse-grow 2s ease-out infinite alternate;
+        }
+        @keyframes pulse-grow {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.02); }
+        }
+
+        /* Food Face-Off Specific Styling */
+        .comparison-items {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start; /* Align items to the top */
+            gap: 1.5rem; /* Space between items */
+            position: relative;
+            padding-bottom: 2rem; /* Give space for "VS" if needed */
+        }
+
+        .comparison-item {
+            flex: 1;
+            text-align: center;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            min-height: 150px; /* Ensure consistent height for visual balance */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        .comparison-item h4 {
+            font-size: 1.5rem; /* Larger title */
+            margin-bottom: 0.5rem;
+        }
+
+        .comparison-item p {
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        .comparison-divider {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 2px; /* Thickness of the line */
+            background-color: #555555; /* Darker grey for the line */
+            transform: translateX(-50%);
+        }
+
+        .comparison-vs {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #3A3A3A; /* Match card background */
+            padding: 0.5rem 1rem;
+            border-radius: 9999px; /* Pill shape */
+            font-weight: bold;
+            color: #87CEEB; /* SkyBlue for contrast */
+            font-size: 1.25rem;
+            border: 2px solid #555555;
+            z-index: 10; /* Ensure it's above the line */
+        }
+         @media (max-width: 767px) {
+            .comparison-items {
+                flex-direction: column;
+                align-items: center;
+            }
+            .comparison-item {
+                width: 100%;
+                margin-bottom: 1.5rem;
+            }
+            .comparison-divider {
+                display: none; /* Hide vertical line on small screens */
+            }
+            .comparison-vs {
+                position: relative; /* Position relative for flow */
+                margin-bottom: 1.5rem; /* Space below VS */
+                margin-top: 1rem;
+            }
+        }
+        /* Loader styles for AI Insight section */
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #3498DB; /* Blue */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="flex flex-col md:flex-row">
+
+    <nav id="main-nav" class="w-full md:w-64 bg-[#2C2C2C] p-4 md:h-screen md:sticky top-0 border-r border-gray-700 shadow-md z-10">
+        <h1 class="text-2xl font-bold text-[#87CEEB] mb-8">The Hidden Truth</h1>
+        <ul class="space-y-2">
+            <li><a href="#intro" class="nav-link block p-2 rounded-lg font-semibold text-gray-300">Introduction</a></li>
+            <li><a href="#culprits" class="nav-link block p-2 rounded-lg font-semibold text-gray-300">The Hidden Culprits</a></li>
+            <li><a href="#face-off" class="nav-link block p-2 rounded-lg font-semibold text-gray-300">Food Face-Off</a></li>
+            <li><a href="#athletes" class="nav-link block p-2 rounded-lg font-semibold text-gray-300">Athlete's Corner</a></li>
+            <li><a href="#detective" class="nav-link block p-2 rounded-lg font-semibold text-gray-300">Label Detective</a></li>
+            <li><a href="#ai-insight" class="nav-link block p-2 rounded-lg font-semibold text-gray-300">✨ AI Food Insight</a></li>
+            <li><a href="#conclusion" class="nav-link block p-2 rounded-lg font-semibold text-gray-300">Conclusion</a></li>
+        </ul>
+    </nav>
+
+    <main class="flex-1">
+        <!-- Hero Section -->
+        <section id="hero" class="hero-background min-h-screen flex items-center justify-center text-center p-4">
+            <div class="max-w-4xl mx-auto px-4 py-16">
+                <h2 class="hero-title text-5xl sm:text-6xl md:text-7xl font-extrabold text-[#E0E0E0] leading-tight mb-6 animate-pulse-grow">
+                    The "Healthy" Food Illusion<br>Uncover the Real Truth!
+                </h2>
+                <p class="text-xl sm:text-2xl text-gray-300 mb-10 leading-relaxed fade-in">
+                    Is your "healthy" food misleading you? Discover the hidden sugars, fats, and sodium, and transform your eating habits forever.
+                </p>
+                <button id="start-exploring" class="btn-primary px-8 py-4 rounded-full text-xl font-bold tracking-wide shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+                    Start Exploring
+                </button>
+            </div>
+        </section>
+
+        <section id="intro" class="mb-16 p-4 sm:p-6 md:p-10 fade-in">
+            <h2 class="text-4xl font-bold text-[#87CEEB] mb-4">The "Health Halo" Trap</h2>
+            <p class="text-lg leading-relaxed text-gray-300">
+                Welcome to our interactive guide designed to illuminate a pervasive paradox in modern dietary habits. Many individuals, from teenagers to adults, often choose foods they believe are healthy, only to inadvertently undermine their well-being. This phenomenon is frequently termed the "health halo" effect: a food appears nutritious due to a single claim—like "low-fat" or "natural"—even when its overall nutritional profile suggests otherwise. This guide empowers you to see beyond deceptive marketing, understand the true contents of your food, and make genuinely informed, healthy choices. Explore the sections to uncover the hidden truths within seemingly 'healthy' foods.
+            </p>
+        </section>
+
+        <section id="culprits" class="mb-16 p-4 sm:p-6 md:p-10">
+            <h2 class="text-3xl font-bold text-[#E0E0E0] mb-6 fade-in">The Hidden Culprits: Sugar, Fat & Sodium</h2>
+            <p class="text-lg mb-8 leading-relaxed text-gray-300 fade-in">The illusion of a healthy product often comes down to three main ingredients that are expertly hidden by manufacturers. These are added sugars, unhealthy fats, and excessive sodium. This section breaks down each culprit, explaining where they hide and why they are a concern. Click on each card to learn more about their impact on your health.</p>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="content-card p-6 rounded-xl slide-in-right">
+                    <h3 class="text-2xl font-bold text-[#87CEEB] mb-2">🍭 Added Sugars</h3>
+                    <p class="text-gray-400">Sweetness in disguise. Found in everything from yogurts to sauces, added sugars contribute to weight gain, heart disease, and type 2 diabetes. Manufacturers use over 60 different names to hide them in ingredient lists.</p>
+                </div>
+                <div class="content-card p-6 rounded-xl slide-in-right">
+                    <h3 class="text-2xl font-bold text-[#87CEEB] mb-2">🧈 Unhealthy Fats</h3>
+                    <p class="text-gray-400">Not all fats are equal. Saturated and trans fats, common in baked goods and processed snacks, raise "bad" LDL cholesterol, increasing the risk of heart disease and stroke. Even products labeled "0g trans fat" can contain them.</p>
+                </div>
+                <div class="content-card p-6 rounded-xl slide-in-right">
+                    <h3 class="text-2xl font-bold text-[#87CEEB] mb-2">🧂 Excessive Sodium</h3>
+                    <p class="text-gray-400">The silent threat. Over 70% of sodium intake comes from processed and restaurant foods, not the salt shaker. High sodium leads to high blood pressure, a major risk factor for heart disease and stroke.</p>
+                </div>
+            </div>
+        </section>
+        
+        <section id="face-off" class="mb-16 p-4 sm:p-6 md:p-10">
+            <h2 class="text-3xl font-bold text-[#E0E0E0] mb-6 fade-in">Food Face-Off: Perception vs. Reality</h2>
+            <p class="text-lg mb-8 leading-relaxed text-gray-300 fade-in">
+                This is where we challenge common "health halo" foods against their genuinely nutritious alternatives. Select a food category from the dropdown menu below to view a comprehensive side-by-side comparison. Further refine your analysis by choosing specific nutritional metrics. The interactive chart and detailed descriptions will dynamically update, revealing the profound differences in their nutritional content and empowering you to discern the real impact of your dietary choices.
+            </p>
+
+            <div class="mb-8 flex flex-col md:flex-row md:items-end gap-4 fade-in">
+                <div class="flex-1">
+                    <label for="food-selector" class="block text-lg font-semibold text-gray-300 mb-2">Choose a food to compare:</label>
+                    <select id="food-selector" class="w-full p-3 border border-gray-600 rounded-lg bg-[#3A3A3A] text-gray-200 shadow-sm focus:ring-2 focus:ring-[#3498DB] focus:border-[#3498DB]">
+                        <!-- Options will be dynamically loaded here by JavaScript -->
+                    </select>
+                </div>
+                <div class="flex-1">
+                    <span class="block text-lg font-semibold text-gray-300 mb-2">Choose metrics to compare:</span>
+                    <div class="flex flex-wrap gap-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="metric-group" value="primary" class="form-radio text-[#3498DB]" checked>
+                            <span class="ml-2 text-gray-300">Key Nutrients (Sugar, Fiber, Sodium)</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="metric-group" value="secondary" class="form-radio text-[#3498DB]">
+                            <span class="ml-2 text-gray-300">Other Nutrients (Calories, Protein, Saturated Fat)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-card p-6 rounded-xl fade-in">
+                <h3 id="comparison-title" class="text-2xl font-bold text-center mb-6 text-[#E0E0E0]"></h3>
+                
+                <div class="comparison-items">
+                    <div class="comparison-item" id="deceptive-item">
+                        <span class="text-3xl font-bold text-red-500 mb-2">❌</span>
+                        <h4 id="deceptive-title-item" class="font-semibold text-red-500 mb-2"></h4>
+                        <p id="deceptive-desc-item" class="text-gray-400 text-sm"></p>
+                    </div>
+                    <div class="comparison-divider"></div>
+                    <div class="comparison-vs">VS</div>
+                    <div class="comparison-item" id="healthy-item">
+                        <span class="text-3xl font-bold text-green-500 mb-2">✅</span>
+                        <h4 id="healthy-title-item" class="font-semibold text-green-500 mb-2"></h4>
+                        <p id="healthy-desc-item" class="text-gray-400 text-sm"></p>
+                    </div>
+                </div>
+                <p id="comparison-explanation" class="mt-4 text-gray-300 text-center italic"></p>
+
+                <div class="mt-8">
+                    <div class="chart-container">
+                        <canvas id="comparison-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="athletes" class="mb-16 p-4 sm:p-6 md:p-10">
+            <h2 class="text-3xl font-bold text-[#E0E0E0] mb-6 fade-in">Athlete's Corner: Fueling Performance Wisely</h2>
+            <p class="text-lg mb-8 leading-relaxed text-gray-300 fade-in">
+                Teenagers and active individuals face unique nutritional demands and are often susceptible to specific dietary misconceptions that can undermine their health and performance. Optimal fueling transcends simple protein loading or carb avoidance; it hinges on balance and informed choices. This section meticulously debunks common myths and outlines the precise nutritional requirements a growing, active body truly needs to achieve peak performance and maintain robust health.
+            </p>
+            <div id="accordion-container" class="space-y-4 fade-in">
+            </div>
+        </section>
+
+        <section id="detective" class="mb-16 p-4 sm:p-6 md:p-10">
+            <h2 class="text-3xl font-bold text-[#E0E0E0] mb-6 fade-in">Become a Label Detective</h2>
+            <p class="text-lg mb-8 leading-relaxed text-gray-300 fade-in">
+                Knowledge is your most potent tool in the modern food landscape. While front-of-pack marketing claims are frequently misleading, the Nutrition Facts Label is a legally mandated and reliable source of truth. Mastering the art of reading this label effectively allows you to bypass superficial hype. This section will equip you with the skills to decode intricate food labels and identify deceptive terms, transforming you into a highly informed consumer.
+            </p>
+            <div class="content-card p-6 rounded-xl fade-in">
+                <h3 class="text-xl font-bold mb-4 text-center text-[#E0E0E0]">Watch out for these misleading terms:</h3>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 text-center">
+                    <div class="p-3 bg-gray-700 text-gray-200 rounded-lg"><strong>Natural:</strong> Often meaningless. Can still be high in sugar, fat, and processed ingredients.</div>
+                    <div class="p-3 bg-gray-700 text-gray-200 rounded-lg"><strong>Multigrain:</strong> Just means "more than one grain," which are often refined. Look for "100% Whole Grain."</div>
+                    <div class="p-3 bg-gray-700 text-gray-200 rounded-lg"><strong>Low-Fat:</strong> Fat is often replaced with sugar or sodium to improve taste. Not always healthier.</div>
+                    <div class="p-3 bg-gray-700 text-gray-200 rounded-lg"><strong>Organic:</strong> This is a regulated term, but organic foods can still be packed with sugar, fat, and calories.</div>
+                    <div class="p-3 bg-gray-700 text-gray-200 rounded-lg"><strong>Gluten-Free:</strong> Only a health benefit for those with celiac disease or sensitivity. Often has more sugar and fat.</div>
+                    <div class="p-3 bg-gray-700 text-gray-200 rounded-lg"><strong>Made with Real Fruit:</strong> May contain only a tiny amount of fruit concentrate, with sugar as the main sweetener.</div>
+                </div>
+                <div class="mt-8">
+                    <h3 class="text-xl font-bold mb-4 text-center text-[#E0E0E0]">Key things to check on the Nutrition Facts Label:</h3>
+                     <ul class="list-disc list-inside space-y-2 text-gray-300 mx-auto max-w-2xl">
+                        <li><strong>Serving Size:</strong> Is it realistic? All the numbers on the label apply to this amount, not the whole package.</li>
+                        <li><strong>Added Sugars:</strong> This is crucial. Aim for products with low or no added sugars. Less than 5% DV is low.</li>
+                        <li><strong>Sodium:</strong> Keep this low. Processed foods are a major source. Less than 5% DV is low.</li>
+                        <li><strong>Saturated and Trans Fat:</strong> Limit these. Look for "partially hydrogenated oil" in the ingredients—that's trans fat.</li>
+                        <li><strong>Dietary Fiber:</strong> Look for more of this! It keeps you full and is great for digestion. 20% DV or more is high.</li>
+                         <li><strong>Ingredient List:</strong> Shorter is often better. If you see sugar (or one of its many aliases) near the top, be wary.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- New AI Insight Section -->
+        <section id="ai-insight" class="mb-16 p-4 sm:p-6 md:p-10 fade-in">
+            <h2 class="text-3xl font-bold text-[#E0E0E0] mb-6">✨ AI Food Insight</h2>
+            <p class="text-lg mb-8 leading-relaxed text-gray-300">
+                Curious about a specific food? Type its name below, and our AI will provide a brief nutritional summary, highlighting any common "health halo" misconceptions or surprising facts. Get quick, unbiased insights to help you make smarter food choices!
+            </p>
+
+            <div class="content-card p-6 rounded-xl">
+                <div class="mb-6">
+                    <label for="food-insight-input" class="block text-lg font-semibold text-gray-300 mb-2">Enter a food name:</label>
+                    <textarea id="food-insight-input" class="w-full p-3 border border-gray-600 rounded-lg bg-[#2C2C2C] text-gray-200 shadow-sm focus:ring-2 focus:ring-[#3498DB] focus:border-[#3498DB] h-24" placeholder="e.g., 'oat milk', 'granola bar', 'protein shake'"></textarea>
+                </div>
+                <button id="get-insight-btn" class="btn-primary px-6 py-3 rounded-md text-lg font-bold w-full md:w-auto">
+                    Get Insight ✨
+                </button>
+                
+                <div id="insight-loading" class="mt-4 text-center text-[#87CEEB] hidden">
+                    <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4 mx-auto" style="border-top-color: #3498DB;"></div>
+                    Loading AI Insight...
+                </div>
+
+                <div id="ai-insight-output" class="mt-8 p-4 bg-[#2C2C2C] border border-gray-700 rounded-lg text-gray-200 leading-relaxed hidden">
+                    <!-- AI response will be displayed here -->
+                </div>
+
+                <!-- New Chart Container for AI Insight -->
+                <div id="ai-insight-chart-container" class="mt-8 chart-container hidden">
+                    <canvas id="ai-insight-chart"></canvas>
+                </div>
+            </div>
+        </section>
+
+
+        <section id="conclusion" class="mb-16 p-4 sm:p-6 md:p-10 fade-in">
+            <h2 class="text-3xl font-bold text-[#E0E0E0] mb-6">Your Path to Healthier Eating</h2>
+            <p class="text-lg leading-relaxed text-gray-300">
+                The journey to better health commences with informed awareness. The "health halo" represents a potent marketing tool, yet by cultivating the ability to scrutinize beyond front-of-package claims, you can unequivocally reclaim control over your dietary choices. The ultimate objective is not unattainable perfection, but rather the consistent practice of making truly informed decisions. Prioritize whole, unprocessed foods naturally abundant in fiber, lean proteins, and healthy fats. Concurrently, diligently scrutinize ingredient lists for concealed sugars, unhealthy fats, and excessive sodium. By evolving into a discerning and critical consumer, you can optimally nourish your body and deftly navigate the insidious traps prevalent within the contemporary food environment.
+            </p>
+        </section>
+
+    </main>
+
+<script>
+    const appData = {
+        // Initial static comparison data (will be populated dynamically by AI for trending foods)
+        comparisons: {
+            // These will serve as fallback or base examples if AI doesn't provide trending
+            yogurt: {
+                title: "Sweetened Yogurts vs. Plain Yogurt",
+                deceptive: { 
+                    name: "Typical Flavored Yogurt (e.g., Dannon Strawberry, Yoplait Original)", 
+                    primaryDesc: "Marketed as a probiotic-rich snack, but often contains as much added sugar as a candy bar, significantly impacting its 'Key Nutrients' profile.",
+                    secondaryDesc: "Despite appearing light, it has high calories and saturated fat due to added sugar and flavorings, making it less ideal when considering 'Other Nutrients' like overall energy and unhealthy fat content.",
+                    sugar: 19, fiber: 0, sodium: 70, calories: 146, protein: 5, saturatedFat: 2.5
+                },
+                healthy: { 
+                    name: "Plain Greek Yogurt (Low-Fat, e.g., Fage 0%, Chobani Plain)", 
+                    primaryDesc: "A truly healthy food, with low natural sugar and sodium, making its 'Key Nutrients' profile excellent for a balanced diet.",
+                    secondaryDesc: "High in protein and low in saturated fat, plain Greek yogurt offers superior 'Other Nutrients' for muscle building and healthy eating, with fewer calories.",
+                    sugar: 4, fiber: 0, sodium: 34, calories: 73, protein: 10, saturatedFat: 1 
+                },
+                primaryExplanation: "Flavored yogurts often hide excessive added sugars behind a 'healthy' image. Choosing plain yogurt allows you to control sweetness and avoid hidden sugars, which are detrimental to health.",
+                secondaryExplanation: "While protein in flavored yogurt can be decent, the high calories and saturated fat from added sugars and flavorings make it less ideal. Plain yogurt offers a better nutritional balance for these metrics."
+            },
+            granola: {
+                title: "Granola Bars vs. Whole Nuts & Seeds",
+                deceptive: { 
+                    name: "Typical Granola Bar (e.g., Quaker Chewy, Nature Valley Crunch)", 
+                    primaryDesc: "Promoted for 'whole grain goodness' and convenience, but many are high-calorie products held together with significant amounts of sugar syrups (corn syrup, brown sugar syrup), often resembling a dessert more than a healthy snack in terms of 'Key Nutrients'.",
+                    secondaryDesc: "Despite appearing light, it often has high calories due to added sugar and fat, providing less protein and beneficial fats compared to whole nuts and seeds when considering 'Other Nutrients'.",
+                    sugar: 12, fiber: 2, sodium: 100, calories: 150, protein: 3, saturatedFat: 2 
+                },
+                healthy: { 
+                    name: "Mixed Nuts & Seeds (e.g., Almonds, Walnuts, Pumpkin Seeds)", 
+                    primaryDesc: "A powerhouse of nutrition, providing essential healthy fats, plant-based protein, and abundant fiber with no added sugars or artificial ingredients, excellent for 'Key Nutrients'.",
+                    secondaryDesc: "Nuts and seeds are calorie-dense but primarily from healthy fats and protein, with minimal saturated fat, making them a superior choice when considering 'Other Nutrients'.",
+                    sugar: 0, fiber: 8, sodium: 5, calories: 320, protein: 13, saturatedFat: 2.5 
+                },
+                primaryExplanation: "Many granola bars are sugar traps. They offer little fiber and high added sugar, contrasting sharply with the fiber-rich, naturally sugar-free goodness of nuts and seeds.",
+                secondaryExplanation: "Despite appearing light, granola bars can be high in calories due to added sugars and fats, providing less protein and beneficial fats than whole nuts and seeds."
+            },
+            juice: {
+                title: "Packaged Juices & Vitamin Waters vs. Whole Fruit & Plain Water",
+                deceptive: { 
+                    name: "100% Fruit Juice (e.g., Minute Maid, Tropicana Apple Juice)", 
+                    primaryDesc: "Even '100% juice' is a concentrated source of natural sugars with beneficial dietary fiber removed, leading to rapid blood sugar spikes, making it less ideal as a 'Key Nutrient' source.",
+                    secondaryDesc: "Despite being convenient, juice provides very little protein and no saturated fat, making it less beneficial than whole fruit in terms of 'Other Nutrients'.",
+                    sugar: 22, fiber: 0.5, sodium: 10, calories: 120, protein: 0.5, saturatedFat: 0 
+                },
+                healthy: { 
+                    name: "Whole Fruit (e.g., Medium Apple, Orange) & Water", 
+                    primaryDesc: "Provides a complete package of vitamins, minerals, and natural sugar, crucially bundled with fiber, which aids digestion, promotes satiety, and moderates sugar absorption, making it excellent in 'Key Nutrients'.",
+                    secondaryDesc: "Whole fruit is naturally lower in calories, has no saturated fat, and is better for hydration when paired with water, making it a superior choice for 'Other Nutrients'.",
+                    sugar: 10, fiber: 4, sodium: 1, calories: 95, protein: 0.5, saturatedFat: 0 
+                },
+                primaryExplanation: "Packaged juices are essentially sugar water without fiber, leading to sugar spikes. Whole fruit provides natural sugars with essential fiber, slowing absorption and promoting health.",
+                secondaryExplanation: "While convenient, juices offer minimal protein and no saturated fat, unlike whole fruit which is a more complete and naturally balanced nutritional package."
+            },
+            bread: {
+                title: "'Healthy' Breads & Wraps vs. 100% Whole Grain",
+                deceptive: { 
+                    name: "Multigrain or Wheat Bread (e.g., Wonder Bread Wheat, Sara Lee Delightful)", 
+                    primaryDesc: "Often means refined flour from which most beneficial nutrients and fiber have been stripped during processing, offering little more than white bread for 'Key Nutrients'.",
+                    secondaryDesc: "Despite similar calories, refined grain bread often has less protein and sometimes more unhealthy fats compared to 100% whole grain bread, making it less ideal for 'Other Nutrients'.",
+                    sugar: 2, fiber: 1, sodium: 170, calories: 67, protein: 2, saturatedFat: 0.5 
+                },
+                healthy: { 
+                    name: "100% Whole Grain Bread (e.g., Ezekiel 4:9, Dave's Killer Bread)", 
+                    primaryDesc: "Ensures you receive the entire grain kernel—bran, germ, and endosperm—providing vital dietary fiber and essential minerals crucial for sustained energy and digestive health, excellent for 'Key Nutrients'.",
+                    secondaryDesc: "100% whole grain bread has more protein and often healthier fats compared to refined breads, making it a better choice for 'Other Nutrients'.",
+                    sugar: 2, fiber: 4, sodium: 160, calories: 87, protein: 3, saturatedFat: 0.5 
+                },
+                primaryExplanation: "Deceptive breads lack fiber and can be surprisingly high in sodium. True whole grain breads offer significantly more fiber and healthier sodium levels.",
+                secondaryExplanation: "Despite similar calories, 100% whole grain bread provides more protein and less saturated fat than misleading 'wheat' or 'multigrain' options."
+            },
+            chips: {
+                title: "Veggie Chips & Crunchy Snacks vs. Fresh Vegetables",
+                deceptive: { 
+                    name: "Veggie Straws/Chips (e.g., Garden Veggie Straws, Terra Vegetable Chips)", 
+                    primaryDesc: "Primarily made from potato or corn flour, with a token sprinkle of vegetable powder, then deep-fried and heavily loaded with salt, negating any perceived vegetable benefit for 'Key Nutrients'.",
+                    secondaryDesc: "Despite the 'veggie' name, these chips are often calorie-dense and high in unhealthy saturated fats, with very little protein, making them a poor choice for 'Other Nutrients'.",
+                    sugar: 1, fiber: 1, sodium: 250, calories: 130, protein: 1, saturatedFat: 1.5 
+                },
+                healthy: { 
+                    name: "Fresh Veggies (e.g., Carrots, Cucumber, Bell Peppers)", 
+                    primaryDesc: "A quintessential crunchy, low-calorie, and hydrating snack, naturally packed with abundant vitamins, minerals, and dietary fiber, excellent for 'Key Nutrients'.",
+                    secondaryDesc: "Fresh vegetables are naturally low in calories and have no saturated fat, making them a superior and more beneficial choice for 'Other Nutrients'.",
+                    sugar: 5, fiber: 3, sodium: 70, calories: 52, protein: 1, saturatedFat: 0 
+                },
+                primaryExplanation: "Veggie chips offer minimal fiber but excessive sodium, making them far less healthy than fresh vegetables. Prioritize fresh for true nutritional benefits.",
+                secondaryExplanation: "Despite the 'veggie' name, these chips are often calorie-dense and high in unhealthy saturated fats, with very little protein, unlike natural vegetables."
+            },
+            proteinBar: {
+                title: "Protein Bars & Drinks vs. Lean Protein Sources",
+                deceptive: { 
+                    name: "Typical Protein Bar (e.g., Quest Bar, Clif Bar, 60g bar)", 
+                    primaryDesc: "Marketed for muscle gain and recovery, but many are highly processed candy bars with added protein, often featuring high amounts of sugar, artificial sweeteners, and synthetic ingredients, making them a poor choice for 'Key Nutrients'.",
+                    secondaryDesc: "While protein bars boast high protein, they also come with high calories and saturated fat. Lean meats offer superior protein with fewer unhealthy additions, making them better for 'Other Nutrients'.",
+                    sugar: 15, fiber: 5, sodium: 150, calories: 250, protein: 20, saturatedFat: 5 
+                },
+                healthy: { 
+                    name: "Lean Protein (e.g., 3oz Chicken Breast, Hard-boiled Eggs, Cottage Cheese)", 
+                    primaryDesc: "Whole food sources provide superior quality protein with a complete amino acid profile, free from added sugars, artificial flavors, and unnecessary fillers, excellent for 'Key Nutrients'.",
+                    secondaryDesc: "Lean protein sources are high in protein, lower in calories and saturated fat, making them a superior choice for muscle building and overall health in terms of 'Other Nutrients'.",
+                    sugar: 0, fiber: 0, sodium: 75, calories: 165, protein: 24, saturatedFat: 2 
+                },
+                primaryExplanation: "Many protein bars are sugar traps. They offer little fiber and high added sugar, contrasting sharply with the fiber-rich, naturally sugar-free goodness of nuts and seeds.",
+                secondaryExplanation: "While protein bars boast high protein, they also come with high calories and saturated fat. Lean meats offer superior protein with fewer unhealthy additions."
+            },
+            cereal: {
+                title: "Sweetened Breakfast Cereals vs. Plain Oatmeal",
+                deceptive: {
+                    name: "Typical Sweetened Cereal (e.g., Frosted Flakes, Lucky Charms)",
+                    primaryDesc: "Often marketed as a 'good source of vitamins,' but primarily composed of refined grains and high amounts of added sugar, leading to rapid energy spikes followed by inevitable crashes and hunger, making it a poor choice for 'Key Nutrients'.",
+                    secondaryDesc: "Sweetened cereals, despite similar calories, offer less protein and more unhealthy fats compared to plain oatmeal, making them less ideal for 'Other Nutrients'.",
+                    sugar: 14, fiber: 1, sodium: 190, calories: 150, protein: 2, saturatedFat: 0.5
+                },
+                healthy: {
+                    name: "Plain Rolled Oats",
+                    primaryDesc: "A true powerhouse of a whole grain, offering a rich source of soluble fiber (beta-glukán) that provides sustained energy, helps regulate blood sugar, and supports heart health, excellent for 'Key Nutrients'.",
+                    secondaryDesc: "Plain oatmeal is high in protein and low in saturated fat, making it a better choice for 'Other Nutrients' for breakfast, providing sustained energy throughout the day.",
+                    sugar: 0, fiber: 4, sodium: 0, calories: 150, protein: 5, saturatedFat: 1
+                },
+                primaryExplanation: "Sweetened cereals are sugar bombs with minimal fiber, leading to energy crashes. Plain oatmeal offers great fiber and no added sugar for sustained energy.",
+                secondaryExplanation: "Sweetened cereals, despite similar calories, offer less protein and more unhealthy fats compared to the superior nutritional profile of oatmeal."
+            },
+            energyDrink: {
+                title: "Energy Drinks vs. Natural Energy Boosters",
+                deceptive: {
+                    name: "Typical Energy Drink (e.g., Red Bull, Monster Energy)",
+                    primaryDesc: "Marketed for quick and intense energy boosts, these beverages often contain excessively high levels of added sugar, artificial ingredients, and synthetic caffeine, leading to adverse effects like jitters, anxiety, and severe energy crashes, making them a poor choice for 'Key Nutrients'.",
+                    secondaryDesc: "Despite the boost, energy drinks are high in calories from sugar and lack protein or healthy fats, unlike natural energy sources that can offer more balanced nutrition, making them a poor choice for 'Other Nutrients'.",
+                    sugar: 27, fiber: 0, sodium: 100, calories: 110, protein: 0, saturatedFat: 0
+                },
+                healthy: {
+                    name: "Black Coffee or Green Tea",
+                    primaryDesc: "Natural, unprocessed sources of caffeine and powerful antioxidants, providing a clean and sustained energy lift without unnecessary added sugars, artificial colors, or questionable additives, excellent for 'Key Nutrients'.",
+                    secondaryDesc: "Black coffee or green tea have almost zero calories, protein, and saturated fat, making them an excellent and healthy energy alternative for 'Other Nutrients'.",
+                    sugar: 0, fiber: 0, sodium: 5, calories: 2, protein: 0.2, saturatedFat: 0
+                },
+                primaryExplanation: "Energy drinks are loaded with sugar and sodium, offering no fiber. Natural alternatives like coffee or green tea provide clean energy without these added negatives.",
+                secondaryExplanation: "Despite the boost, energy drinks are high in calories from sugar and lack protein or healthy fats, unlike natural energy sources that can offer more balanced nutrition."
+            }
+        },
+        athleteMyths: [
+            {
+                question: "Myth: I need to load up on protein to build muscle.",
+                answer: "Reality: Your body can only effectively utilize about 20-30 grams of protein at a time for muscle protein synthesis and repair. Consuming excess protein beyond this threshold is often stored as fat or simply excreted. Consistent, progressive training combined with a balanced diet that includes adequate (but not excessive) protein intake is the true driver of muscle growth. Most teenagers and active individuals can easily meet their protein requirements through diverse whole foods like lean meats (chicken, fish), legumes (beans, lentils), eggs, and dairy products (yogurt, cottage cheese)."
+            },
+            {
+                question: "Myth: Carbs make you fat, so athletes should strictly avoid them.",
+                answer: "Reality: Carbohydrates are unequivocally your body's primary and most efficient fuel source, especially crucial for high-intensity and endurance exercise. Severe carbohydrate restriction leads to profound fatigue, impaired cognitive function, and significantly compromised athletic performance. Focus on nutrient-dense, complex carbohydrates like whole grains (brown rice, quinoa), fruits, starchy vegetables (sweet potatoes), and legumes for sustained energy release."
+            },
+            {
+                question: "Myth: All fat is bad and will slow me down.",
+                answer: "Reality: Healthy fats, sourced from foods like avocados, nuts, seeds, and olive oil, are absolutely essential. They play vital roles in energy production (especially for longer duration activities), brain function, hormone production, and the absorption of fat-soluble vitamins (A, D, E, K). While it's prudent to limit unhealthy saturated and trans fats, completely eliminating all fats from your diet is detrimental to overall health, recovery, and peak athletic performance."
+            },
+            {
+                question: "Myth: I need specialized sports drinks and supplements to perform my best.",
+                answer: "Reality: For the vast majority of workouts lasting less than 60-90 minutes, plain water remains the gold standard for hydration. Sports drinks, with their high sugar and electrolyte content, are generally only necessary for prolonged, intense exercise sessions to replenish lost fluids and minerals. Relying on a well-balanced diet rich in whole foods is overwhelmingly superior to consuming an array of supplements, many of which are unregulated, lack robust scientific backing, and can even carry health risks. Prioritize real food nutrition first."
+            }
+        ]
+    };
+
+    let comparisonChart = null;
+    let aiInsightChart = null; // New chart instance for AI insight
+    let currentFoodKey = 'yogurt';
+    let currentMetricGroup = 'primary';
+    let trendingFoodsLoaded = false; // Flag to track if trending foods have been loaded
+
+    function getChartDataAndLabels(foodData, metricGroup) {
+        if (metricGroup === 'primary') {
+            return {
+                labels: ['Added Sugar (g)', 'Dietary Fiber (g)', 'Sodium (mg)'],
+                deceptiveData: [foodData.deceptive.sugar, foodData.deceptive.fiber, foodData.deceptive.sodium],
+                healthyData: [foodData.healthy.sugar, foodData.healthy.fiber, foodData.healthy.sodium],
+                unitCallbacks: [
+                    (value) => `${value} g`,
+                    (value) => `${value} g`,
+                    (value) => `${value} mg`
+                ]
+            };
+        } else {
+            return {
+                labels: ['Calories (kcal)', 'Protein (g)', 'Saturated Fat (g)'],
+                deceptiveData: [foodData.deceptive.calories, foodData.deceptive.protein, foodData.deceptive.saturatedFat],
+                healthyData: [foodData.healthy.calories, foodData.healthy.protein, foodData.healthy.saturatedFat],
+                 unitCallbacks: [
+                    (value) => `${value} kcal`,
+                    (value) => `${value} g`,
+                    (value) => `${value} g`
+                ]
+            };
+        }
+    }
+
+    function createComparisonChart(foodKey, metricGroup) {
+        const data = appData.comparisons[foodKey];
+        if (!data) return;
+
+        const { labels, deceptiveData, healthyData, unitCallbacks } = getChartDataAndLabels(data, metricGroup);
+        const ctx = document.getElementById('comparison-chart').getContext('2d');
+        
+        if (comparisonChart) {
+            comparisonChart.destroy();
+        }
+
+        comparisonChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: data.deceptive.name,
+                        data: deceptiveData,
+                        backgroundColor: 'rgba(231, 76, 60, 0.7)', /* Pomegranate */
+                        borderColor: 'rgba(231, 76, 60, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: data.healthy.name,
+                        data: healthyData,
+                        backgroundColor: 'rgba(46, 204, 113, 0.7)', /* Emerald */
+                        borderColor: 'rgba(46, 204, 113, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Nutritional Comparison',
+                        font: { size: 18, family: 'Open Sans' }, /* Updated font */
+                        color: '#E0E0E0' /* Light text for dark background */
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    const index = context.dataIndex;
+                                    return label + unitCallbacks[index](context.parsed.y);
+                                }
+                                return label;
+                            }
+                        },
+                        titleColor: '#E0E0E0', /* Light text for tooltip title */
+                        bodyColor: '#E0E0E0', /* Light text for tooltip body */
+                        backgroundColor: '#3A3A3A' /* Dark background for tooltip */
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Value',
+                            color: '#E0E0E0', /* Light text for Y-axis title */
+                            font: { family: 'Open Sans' } /* Updated font */
+                        },
+                        ticks: {
+                            color: '#B0B0B0', /* Lighter gray for Y-axis ticks */
+                            font: { family: 'Open Sans' } /* Updated font */
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)' /* Very subtle grid lines */
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Nutrient',
+                            color: '#E0E0E0', /* Light text for X-axis title */
+                            font: { family: 'Open Sans' } /* Updated font */
+                        },
+                        ticks: {
+                            color: '#B0B0B0', /* Lighter gray for X-axis ticks */
+                            font: { family: 'Open Sans' } /* Updated font */
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)' /* Very subtle grid lines */
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function updateComparisonDisplay() {
+        const data = appData.comparisons[currentFoodKey];
+        if (!data) {
+            console.error("Food data not found for key:", currentFoodKey);
+            return;
+        }
+
+        document.getElementById('comparison-title').textContent = data.title;
+        
+        // Dynamically update deceptive and healthy food descriptions based on metric group
+        if (currentMetricGroup === 'primary') {
+            document.getElementById('deceptive-desc-item').textContent = data.deceptive.primaryDesc; 
+            document.getElementById('healthy-desc-item').textContent = data.healthy.primaryDesc;
+            document.getElementById('comparison-explanation').textContent = data.primaryExplanation; // Changed to data.primaryExplanation
+        } else {
+            document.getElementById('deceptive-desc-item').textContent = data.deceptive.secondaryDesc; 
+            document.getElementById('healthy-desc-item').textContent = data.healthy.secondaryDesc;
+            document.getElementById('comparison-explanation').textContent = data.secondaryExplanation; // Changed to data.secondaryExplanation
+        }
+
+        document.getElementById('deceptive-title-item').textContent = data.deceptive.name; 
+        document.getElementById('healthy-title-item').textContent = data.healthy.name; 
+        
+        createComparisonChart(currentFoodKey, currentMetricGroup);
+    }
+    
+    function createAccordion() {
+        const container = document.getElementById('accordion-container');
+        container.innerHTML = '';
+        appData.athleteMyths.forEach((item, index) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'content-card rounded-xl overflow-hidden';
+            
+            const button = document.createElement('button');
+            button.className = 'w-full p-4 text-left font-semibold text-lg bg-[#3A3A3A] hover:bg-[#4A4A4A] flex justify-between items-center text-gray-200';
+            button.innerHTML = `<span>${item.question}</span><span class="transform transition-transform duration-300 ">▼</span>`;
+            
+            const content = document.createElement('div');
+            content.className = 'p-4 bg-[#2C2C2C] border-t border-gray-700 text-gray-300 hidden';
+            content.textContent = item.answer;
+            
+            button.addEventListener('click', () => {
+                const isHidden = content.classList.toggle('hidden');
+                button.querySelector('span:last-child').style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+            });
+            
+            wrapper.appendChild(button);
+            wrapper.appendChild(content);
+            container.appendChild(wrapper);
+        });
+    }
+
+    // Function to create/update the AI Insight chart
+    function createAiInsightChart(foodName, nutritionalData) {
+        const ctx = document.getElementById('ai-insight-chart').getContext('2d');
+        if (aiInsightChart) {
+            aiInsightChart.destroy();
+        }
+
+        // Define all possible labels with units and their corresponding keys in nutritionalData
+        const allNutrients = [
+            { name: 'Calories', key: 'calories', unit: 'kcal' }, 
+            { name: 'Sugar', key: 'sugar', unit: 'g' }, 
+            { name: 'Fat', key: 'fat', unit: 'g' }, 
+            { name: 'Sodium', key: 'sodium', unit: 'mg' }, 
+            { name: 'Protein', key: 'protein', unit: 'g' }, 
+            { name: 'Fiber', key: 'fiber', unit: 'g' }, 
+            { name: 'Saturated Fat', key: 'saturatedFat', unit: 'g' }
+        ];
+
+        // Filter out nutrients with value 0
+        const filteredLabels = []; // Labels for the pie chart slices
+        const filteredDataValues = []; // Data values for the pie chart slices
+        const filteredUnitNames = []; // Original names for tooltips and legends
+
+        // Validate nutritionalData object and its properties
+        if (!nutritionalData || typeof nutritionalData !== 'object') {
+            console.warn("Invalid nutritionalData received:", nutritionalData);
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            const chartContainer = document.getElementById('ai-insight-chart-container');
+            chartContainer.innerHTML = '<p class="text-center text-red-400 mt-4">Unable to display chart: Nutritional data is missing or invalid.</p>'; // Error message for user
+            return;
+        }
+
+        allNutrients.forEach(nutrient => {
+            const value = nutritionalData[nutrient.key];
+            // Ensure value is a number and greater than 0, or safely default to 0
+            const numericValue = typeof value === 'number' ? value : 0;
+            if (numericValue > 0) { 
+                filteredLabels.push(`${nutrient.name} (${nutrient.unit})`); // Label format for pie chart
+                filteredDataValues.push(numericValue);
+                filteredUnitNames.push(nutrient.name); // Store original name for tooltip
+            }
+        });
+
+        // If no data is available or all are zero, show a message
+        if (filteredLabels.length === 0) {
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            const chartContainer = document.getElementById('ai-insight-chart-container');
+            chartContainer.innerHTML = '<p class="text-center text-gray-400 mt-4">No significant nutritional data (greater than 0) available for this product to display in chart.</p>'; // Updated to English
+            return;
+        }
+
+        // Define a color palette for the pie chart slices
+        const backgroundColors = [
+            '#3498DB', // Deep Sky Blue (Calories)
+            '#E74C3C', // Pomegranate (Sugar)
+            '#F39C12', // Orange (Fat)
+            '#2ECC71', // Emerald (Sodium)
+            '#9B59B6', // Amethyst (Protein)
+            '#1ABC9C', // Turquoise (Fiber)
+            '#D35400', // Pumpkin (Saturated Fat)
+            '#BDC3C7', // Silver (Fallback/Others)
+            '#7F8C8D' // Asbestos (Fallback/Others)
+        ];
+
+
+        aiInsightChart = new Chart(ctx, {
+            type: 'pie', // Changed to pie chart
+            data: {
+                labels: filteredLabels,
+                datasets: [{
+                    data: filteredDataValues,
+                    backgroundColor: backgroundColors.slice(0, filteredLabels.length), // Assign colors based on filtered data length
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: `Nutritional Breakdown for ${foodName}`,
+                        font: { size: 18, family: 'Open Sans' },
+                        color: '#E0E0E0'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const labelText = context.label; // This is "Name (Unit)" from filteredLabels
+                                const value = context.parsed;
+                                const total = context.dataset.data.reduce((sum, current) => sum + current, 0);
+                                const percentage = (total > 0 ? (value / total) * 100 : 0).toFixed(2); // Avoid division by zero
+
+                                // Extract name and unit from labelText
+                                const match = labelText.match(/(.*?)\s\((.*?)\)/);
+                                const name = match ? match[1] : labelText;
+                                const unit = match ? match[2] : '';
+
+                                return `${name}: ${value} ${unit} (${percentage}%)`;
+                            }
+                        },
+                        titleColor: '#E0E0E0',
+                        bodyColor: '#E0E0E0',
+                        backgroundColor: '#3A3A3A'
+                    },
+                    legend: { // Display legend for pie chart
+                        display: true,
+                        position: 'right', // Position legend on the right
+                        labels: {
+                            color: '#E0E0E0',
+                            font: {
+                                size: 12,
+                                family: 'Open Sans'
+                            },
+                            generateLabels: function(chart) {
+                                const data = chart.data;
+                                const dataset = data.datasets[0]; 
+                                if (data.labels.length && dataset) {
+                                    return data.labels.map(function(label, i) {
+                                        const value = dataset.data[i];
+                                        const originalName = label.split(' (')[0]; 
+                                        const originalUnit = label.match(/\((.*?)\)/)?.[1] || '';
+                                        
+                                        return {
+                                            text: `${originalName}: ${value} ${originalUnit}`,
+                                            fillStyle: dataset.backgroundColor[i], 
+                                            strokeStyle: dataset.borderColor ? dataset.borderColor[i] : 'transparent', 
+                                            lineWidth: dataset.borderWidth || 0, 
+                                            hidden: isNaN(value) || value <= 0, 
+                                            index: i
+                                        };
+                                    });
+                                }
+                                return [];
+                            }
+                        }
+                    }
+                }
+                // No scales for pie charts
+            }
+        });
+    }
+
+    // Function to get trending food data from AI and populate appData.comparisons
+    async function getTrendingFood() {
+        const foodSelector = document.getElementById('food-selector');
+        // Save static options as default options for fallback
+        const staticDefaultComparisons = JSON.parse(JSON.stringify(appData.comparisons)); // Deep copy
+
+        // Clear existing options, but keep a default empty one to prevent UI issues if AI fails
+        foodSelector.innerHTML = '<option value="">Loading Trending Foods...</option>'; 
+        foodSelector.disabled = true; // Disable until loaded
+
+        try {
+            let chatHistory = [];
+            const prompt = `Provide a list of 5 currently popular or trending "health halo" food pairs (one deceptive, one genuinely healthy alternative) in a JSON array. For each pair, include:
+            - A unique 'key' (e.g., 'oatMilk')
+            - A 'title' for the comparison (e.g., 'Oat Milk vs. Almond Milk')
+            - 'deceptive' food details:
+                - 'name' (e.g., 'Sweetened Oat Milk')
+                - 'primaryDesc' (brief description focusing on key nutrients like sugar/fiber/sodium, ~2 sentences)
+                - 'secondaryDesc' (brief description focusing on other nutrients like calories/protein/fat, ~2 sentences)
+                - 'sugar', 'fiber', 'sodium', 'calories', 'protein', 'saturatedFat' (approximate numeric values per typical serving).
+            - 'healthy' food details:
+                - 'name' (e.g., 'Unsweetened Almond Milk')
+                - 'primaryDesc' (brief description focusing on key nutrients, ~2 sentences)
+                - 'secondaryDesc' (brief description focusing on other nutrients, ~2 sentences)
+                - 'sugar', 'fiber', 'sodium', 'calories', 'protein', 'saturatedFat' (approximate numeric values per typical serving).
+            - A general 'primaryExplanation' for the comparison when focusing on key nutrients.
+            - A general 'secondaryExplanation' for the comparison when focusing on other nutrients.
+
+            Example for one pair:
+            {
+                "key": "oatMilk",
+                "title": "Oat Milk vs. Almond Milk",
+                "deceptive": {
+                    "name": "Sweetened Oat Milk",
+                    "primaryDesc": "Often perceived as healthy, but sweetened oat milk can have high sugar content and minimal fiber, impacting its 'key nutrients' profile negatively.",
+                    "secondaryDesc": "While lower in saturated fat than dairy, sweetened oat milk can still be calorie-dense and offer less protein than other milk alternatives, affecting 'other nutrients'.",
+                    "sugar": 16, "fiber": 1, "sodium": 120, "calories": 130, "protein": 2, "saturatedFat": 0.5
+                },
+                "healthy": {
+                    "name": "Unsweetened Almond Milk",
+                    "primaryDesc": "A low-sugar, low-sodium option with some fiber, making it a better choice for 'key nutrients' compared to sweetened plant-based milks.",
+                    "secondaryDesc": "Very low in calories and saturated fat, with a modest protein content, unsweetened almond milk is a good alternative for 'other nutrients' in a healthy diet.",
+                    "sugar": 0, "fiber": 1, "sodium": 160, "calories": 30, "protein": 1, "saturatedFat": 0
+                },
+                "primaryExplanation": "Sweetened oat milk often contains hidden sugars that contribute to daily sugar intake, while unsweetened almond milk offers a much lower sugar content for a healthier choice.",
+                "secondaryExplanation": "Considering calories and protein, unsweetened almond milk is significantly lower in calories and still provides some protein, unlike sweetened oat milk which can be deceptively high in calories."
+            }`;
+            
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            const payload = { 
+                contents: chatHistory,
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "ARRAY",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                "key": { "type": "STRING" },
+                                "title": { "type": "STRING" },
+                                "deceptive": {
+                                    "type": "OBJECT",
+                                    "properties": {
+                                        "name": { "type": "STRING" },
+                                        "primaryDesc": { "type": "STRING" },
+                                        "secondaryDesc": { "type": "STRING" },
+                                        "sugar": { "type": "NUMBER" },
+                                        "fiber": { "type": "NUMBER" },
+                                        "sodium": { "type": "NUMBER" },
+                                        "calories": { "type": "NUMBER" },
+                                        "protein": { "type": "NUMBER" },
+                                        "saturatedFat": { "type": "NUMBER" }
+                                    },
+                                    "required": ["name", "primaryDesc", "secondaryDesc", "sugar", "fiber", "sodium", "calories", "protein", "saturatedFat"]
+                                },
+                                "healthy": {
+                                    "type": "OBJECT",
+                                    "properties": {
+                                        "name": { "type": "STRING" },
+                                        "primaryDesc": { "type": "STRING" },
+                                        "secondaryDesc": { "type": "STRING" },
+                                        "sugar": { "type": "NUMBER" },
+                                        "fiber": { "type": "NUMBER" },
+                                        "sodium": { "type": "NUMBER" },
+                                        "calories": { "type": "NUMBER" },
+                                        "protein": { "type": "NUMBER" },
+                                        "saturatedFat": { "type": "NUMBER" }
+                                    },
+                                    "required": ["name", "primaryDesc", "secondaryDesc", "sugar", "fiber", "sodium", "calories", "protein", "saturatedFat"]
+                                },
+                                "primaryExplanation": { "type": "STRING" },
+                                "secondaryExplanation": { "type": "STRING" }
+                            },
+                            "required": ["key", "title", "deceptive", "healthy", "primaryExplanation", "secondaryExplanation"]
+                        }
+                    }
+                }
+            };
+            const apiKey = ""; // Canvas will provide this in runtime
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorData.error ? errorData.error.message : 'Unknown error'}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.candidates && result.candidates.length > 0 &&
+                result.candidates[0].content && result.candidates[0].content.parts &&
+                result.candidates[0].content.parts.length > 0) {
+                const jsonText = result.candidates[0].content.parts[0].text;
+                
+                // Add explicit check for empty or non-string JSON text
+                if (!jsonText || typeof jsonText !== 'string' || jsonText.trim() === '') { // Added trim check for empty string
+                    throw new Error("AI response was empty or not a valid string for JSON parsing.");
+                }
+
+                try {
+                    const trendingComparisons = JSON.parse(jsonText);
+                    
+                    // Validate if trendingComparisons is an array and not empty
+                    if (!Array.isArray(trendingComparisons) || trendingComparisons.length === 0) {
+                        throw new Error("AI returned an empty or invalid array for trending foods.");
+                    }
+
+                    // Merge trending foods into appData.comparisons
+                    Object.assign(appData.comparisons, trendingComparisons.reduce((acc, food) => {
+                        acc[food.key] = food;
+                        return acc;
+                    }, {}));
+
+                    // Repopulate dropdown with all available options (static + trending)
+                    foodSelector.innerHTML = '';
+                    for (const key in appData.comparisons) {
+                        const option = document.createElement('option');
+                        option.value = key;
+                        option.textContent = appData.comparisons[key].title;
+                        foodSelector.appendChild(option);
+                    }
+                    
+                    trendingFoodsLoaded = true;
+                    foodSelector.disabled = false; // Enable selector
+                    // Select the first trending food from AI, if available, otherwise default to 'yogurt'
+                    foodSelector.value = trendingComparisons[0] ? trendingComparisons[0].key : 'yogurt';
+                    currentFoodKey = foodSelector.value;
+                    updateComparisonDisplay(); // Update display with selected food
+
+                } catch (jsonError) {
+                    console.error("Error parsing trending foods JSON:", jsonError, "Response:", jsonText);
+                    // Fallback to static options if AI parsing fails
+                    populateStaticFoods(staticDefaultComparisons); // Pass staticDefaultComparisons
+                    document.getElementById('food-selector').parentElement.querySelector('label').textContent += " (Failed to load trending foods, showing defaults)"; // Inform user
+                }
+            } else {
+                console.error("No candidates found for trending foods.");
+                 // Fallback to static options if AI response is empty
+                populateStaticFoods(staticDefaultComparisons); // Pass staticDefaultComparisons
+                document.getElementById('food-selector').parentElement.querySelector('label').textContent += " (Failed to load trending foods, showing defaults)"; // Inform user
+            }
+        } catch (error) {
+            console.error("Error fetching trending foods:", error);
+            // Fallback to static options if API call fails
+            populateStaticFoods(staticDefaultComparisons); // Pass staticDefaultComparisons
+            document.getElementById('food-selector').parentElement.querySelector('label').textContent += " (Failed to load trending foods, showing defaults)"; // Inform user
+        }
+    }
+
+    // Function to populate dropdown with static food options
+    // Added staticDefaultComparisons as a parameter to ensure it's accessible
+    function populateStaticFoods(staticDefaultComparisons) {
+        const foodSelector = document.getElementById('food-selector');
+        foodSelector.innerHTML = ''; // Clear current options
+        for (const key in staticDefaultComparisons) { // Use the passed parameter
+            const option = document.createElement('option');
+            option.value = key;
+            option.textContent = staticDefaultComparisons[key].title;
+            foodSelector.appendChild(option);
+        }
+        foodSelector.disabled = false;
+        foodSelector.value = 'yogurt'; // Default to yogurt
+        currentFoodKey = 'yogurt';
+        updateComparisonDisplay();
+    }
+
+
+    // Function to call Gemini API for food insight
+    async function getFoodInsight(foodName) {
+        const insightOutput = document.getElementById('ai-insight-output');
+        const loadingIndicator = document.getElementById('insight-loading');
+        const aiChartContainer = document.getElementById('ai-insight-chart-container');
+
+        // Clear any previous chart message
+        aiChartContainer.innerHTML = '<canvas id="ai-insight-chart"></canvas>'; // Reset canvas
+
+        insightOutput.classList.add('hidden'); // Hide previous text output
+        aiChartContainer.classList.add('hidden'); // Hide previous chart output
+        loadingIndicator.classList.remove('hidden'); // Show loading indicator
+        insightOutput.textContent = ''; // Clear previous text content
+
+        try {
+            let chatHistory = [];
+            // Prompt to get structured JSON output with summary and nutritional data
+            const prompt = `Provide a concise nutritional summary for "${foodName}" in about 3-4 sentences, highlighting common "health halo" misconceptions or surprising facts. Also, provide the nutritional data (approximate values per typical serving, specify serving size in summary if known) for calories (kcal), total sugar (g), total fat (g), sodium (mg), protein (g), dietary fiber (g), and saturated fat (g). For any nutrient where a specific value isn't readily available or is negligible, provide 0. Format the response as a JSON object with 'foodName', 'summary', and 'nutritionalData' (an object containing the nutrient values).`; // Added instruction for 0 for unknown/negligible
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            const payload = { 
+                contents: chatHistory,
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            "foodName": { "type": "STRING" },
+                            "summary": { "type": "STRING" },
+                            "nutritionalData": {
+                                "type": "OBJECT",
+                                "properties": {
+                                    "calories": { "type": "NUMBER" },
+                                    "sugar": { "type": "NUMBER" },
+                                    "fat": { "type": "NUMBER" },
+                                    "sodium": { "type": "NUMBER" },
+                                    "protein": { "type": "NUMBER" },
+                                    "saturatedFat": { "type": "NUMBER" },
+                                    "fiber": { "type": "NUMBER" }
+                                }
+                            }
+                        },
+                        "required": ["foodName", "summary", "nutritionalData"]
+                    }
+                }
+            };
+            const apiKey = "YOUR_API_KEY_HERE"; // Canvas will provide this in runtime
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorData.error ? errorData.error.message : 'Unknown error'}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.candidates && result.candidates.length > 0 &&
+                result.candidates[0].content && result.candidates[0].content.parts &&
+                result.candidates[0].content.parts.length > 0) {
+                const jsonText = result.candidates[0].content.parts[0].text;
+                
+                // Add explicit check for empty or non-string JSON text
+                if (!jsonText || typeof jsonText !== 'string' || jsonText.trim() === '') {
+                    throw new Error("AI response was empty or not a valid string for JSON parsing.");
+                }
+
+                try {
+                    const parsedJson = JSON.parse(jsonText);
+                    
+                    // Validate the parsed JSON structure before using it
+                    if (!parsedJson || !parsedJson.foodName || !parsedJson.summary || !parsedJson.nutritionalData || typeof parsedJson.nutritionalData !== 'object') {
+                        throw new Error("AI response structure is invalid or incomplete.");
+                    }
+
+                    insightOutput.textContent = parsedJson.summary;
+                    createAiInsightChart(parsedJson.foodName, parsedJson.nutritionalData);
+                    aiChartContainer.classList.remove('hidden'); // Show the chart container
+                } catch (jsonError) {
+                    insightOutput.textContent = `Error: Could not process AI insight. (${jsonError.message}). Please try again.`;
+                    console.error("JSON parsing or structure validation error:", jsonError, "Response:", jsonText);
+                }
+            } else {
+                insightOutput.textContent = "Could not get a clear insight for this food. Please try another one or clarify your query.";
+            }
+        }
+        catch (error) {
+            console.error("Error fetching AI insight:", error);
+            insightOutput.textContent = `Error: ${error.message}. Please try again later.`;
+        } finally {
+            loadingIndicator.classList.add('hidden'); // Hide loading
+            insightOutput.classList.remove('hidden'); // Show text output (even if it's an error)
+        }
+    }
+
+
+    // Intersection Observer for fade-in animations
+    const sectionsToAnimate = document.querySelectorAll('.fade-in, .slide-in-right');
+    const observerOptions = {
+        root: null, // viewport
+        rootMargin: '0px',
+        threshold: 0.2 // Trigger when 20% of the element is visible
+    };
+
+    const sectionObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('show');
+                observer.unobserve(entry.target); // Stop observing once animated
+            }
+        });
+    }, observerOptions);
+
+    sectionsToAnimate.forEach(section => {
+        sectionObserver.observe(section);
+    });
+
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const foodSelector = document.getElementById('food-selector');
+        const metricRadios = document.querySelectorAll('input[name="metric-group"]');
+        const startExploringBtn = document.getElementById('start-exploring');
+        const getInsightBtn = document.getElementById('get-insight-btn'); // AI Insight button
+        const foodInsightInput = document.getElementById('food-insight-input'); // AI Insight input
+
+        // Initial loading of trending foods
+        getTrendingFood();
+
+        foodSelector.addEventListener('change', (e) => {
+            currentFoodKey = e.target.value;
+            updateComparisonDisplay();
+        });
+
+        metricRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                currentMetricGroup = e.target.value;
+                updateComparisonDisplay();
+            });
+        });
+
+        startExploringBtn.addEventListener('click', () => {
+            document.getElementById('intro').scrollIntoView({ behavior: 'smooth' });
+        });
+
+        // Event listener for the new AI Insight button
+        getInsightBtn.addEventListener('click', () => {
+            const foodName = foodInsightInput.value.trim();
+            if (foodName) {
+                getFoodInsight(foodName);
+            } else {
+                // If input is empty, clear previous insight and show a message
+                document.getElementById('ai-insight-output').textContent = "Please enter a food name to get an insight.";
+                document.getElementById('ai-insight-output').classList.remove('hidden');
+                document.getElementById('ai-insight-chart-container').classList.add('hidden'); // Hide chart if input is empty
+                // Optionally, if input is empty, you could refresh trending foods as a fallback, but the user requested error handling here.
+                // getTrendingFood(); 
+            }
+        });
+
+
+        updateComparisonDisplay(); // Initial display
+        createAccordion();
+        
+        const navLinks = document.querySelectorAll('#main-nav a');
+        const sections = document.querySelectorAll('main section');
+        
+        const navObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    navLinks.forEach(link => {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href').substring(1) === entry.target.id) {
+                            link.classList.add('active');
+                        }
+                    });
+                }
+            });
+        }, { rootMargin: '-30% 0px -30% 0px' });
+        
+        sections.forEach(section => navObserver.observe(section));
+    });
+</script>
+
+</body>
+</html>
