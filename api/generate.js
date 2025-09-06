@@ -11,7 +11,8 @@ export default async function handler(req, res) {
   try {
     const body = (req.body && typeof req.body === 'object') ? req.body : JSON.parse(req.body || '{}');
     const prompt = `Provide a JSON object for the food "${body.foodName}" with these keys:
-    "foodName", "summary", "nutritionalData" (including calories, sugar, fat, sodium, protein, fiber, saturatedFat).
+     "foodName", "summary", "nutritionalData". "nutritionalData" is a object which should contain the key, value pair of keys: "calories", "sugar", "fat", "sodium", "protein", "fiber", "saturatedFat".
+     The values of nutritonalData key should only be 'numerical' and in grams. no 10g, instead 10.
      Respond ONLY with valid JSON.`;
 
     const API_KEY = process.env.GEMINI_API_KEY;
